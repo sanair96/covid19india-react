@@ -17,6 +17,7 @@ function Home(props) {
   const [lastUpdated, setLastUpdated] = useState('');
   const [timeseries, setTimeseries] = useState([]);
   const [deltas, setDeltas] = useState([]);
+  const [summaryString, setSummaryData] = useState('');
 
   useEffect(()=> {
     if (fetched===false) {
@@ -32,10 +33,44 @@ function Home(props) {
           setLastUpdated(response.data.statewise[0].lastupdatedtime.slice(0, 15)+response.data.statewise[0].lastupdatedtime.slice(18));
           setDeltas(response.data.key_values[0]);
           setFetched(true);
+          getSummaryData(response.data);
         })
         .catch((err)=>{
           console.log(err);
         });
+  };
+
+  const getSummaryData = (data) => {
+    // This should be moved to utils
+    let confirmed = 0;
+    let recoveries = 0;
+    let deaths = 0;
+    data.statewise.map((state, index) => {
+      if (index !== 0) {
+        confirmed += parseInt(state.confirmed);
+        recoveries += parseInt(state.recovered);
+        deaths += parseInt(state.deaths);
+      }
+    });
+
+    const todayDate = data.key_values[0].lastupdatedtime.split(',')[0];
+    const todayData = data.cases_time_series.filter((x) => x.date.trim() === todayDate)[0];
+    const dailyConfirmed = todayData ? todayData.dailyconfirmed: '0';
+
+    const dateTimeString = new Date().toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'}).slice(0, -3);
+    const twitterString = `COVID-19 India : 📊 as of ${dateTimeString} IST
+    Total Confirmed : ${confirmed}
+    Total Recovered : ${recoveries}
+    Total Deceased  : ${deaths}
+
+    Number of cases reported today: ${dailyConfirmed}
+
+    Follow @covid19indiaorg
+
+    #COVID19India #SocialDistancing
+    More @`;
+
+    setSummaryData(twitterString);
   };
 
   return (
@@ -58,6 +93,23 @@ function Home(props) {
           <a href="https://t.me/covid19indiaops" className="button telegram" target="_noblank">
             <Icon.MessageCircle />
             <span>Join Telegram to Collaborate!</span>
+          </a>
+        </div>
+
+        <div className="header-mid">
+          <a className="button telegram" onClick={()=>{
+            document.location.href('https://t.me/covid19indiaops');
+          }}>
+            <Icon.MessageCircle />
+            <span>Join Telegram to Collaborate!</span>
+          </a>
+          {/* This should be created a separate component */}
+          <a className="twitter-share-button"
+            href="https://twitter.com/intent/tweet"
+            data-size="large"
+            data-url="https://www.covid19india.org/"
+            data-text={summaryString}>
+            <span>Tweet</span>
           </a>
         </div>
 
